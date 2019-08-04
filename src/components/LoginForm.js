@@ -1,32 +1,54 @@
 import React, { Component } from "react";
-import {Text} from 'react-native'
+import { Text } from "react-native";
 import firebase from "firebase";
-import { Button, Card, CardSection, Input } from "./common";
+import { Button, Card, CardSection, Input, Spinner } from "./common";
 
 class LoginForm extends Component {
   state = {
     email: "",
     password: "",
-    error: ""
+    error: "",
+    loading: false
   };
 
   //helper Method
   onButtonPress() {
     const { email, password } = this.state;
 
-    firebase
-      .auth()
-      .signInWithEmailAndPassword(email, password)
+    this.setState({ error: "", loading: true });
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(this.onLoginSuccess.bind(this))
       .catch(() => {
-        firebase
-          .auth()
-          .createUserWithEmailAndPassword(email, password)
-          .catch(() => {
-            this.setState({ error: "Authentication Failed" });
-          });
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then(this.onLoginSuccess.bind(this))
+          .catch(this.onLoginFail.bind(this));
       });
   }
 
+  onLoginFail(){
+      this.setState({
+          error: "Authentication Failed",
+          loading: false
+      })
+  }
+
+  onLoginSuccess() {
+    this.setState({
+      email: "",
+      password: "",
+      laoding: false,
+      error: ""
+    });
+  }
+
+  renderButton() {
+    return this.state.loading ? (
+      <Spinner size="small" />
+    ) : (
+      <Button onPress={this.onButtonPress.bind(this)}>Log in</Button>
+    );
+  }
   render() {
     return (
       <Card>
@@ -48,28 +70,22 @@ class LoginForm extends Component {
             onChangeText={password => this.setState({ password })}
           />
         </CardSection>
-        <Text 
-            style={styles.error}
-        >
-            {this.state.error}
-        </Text>
 
-        <CardSection>
-          <Button onPress={this.onButtonPress.bind(this)}>Log in</Button>
-        </CardSection>
+        <Text style={styles.error}>{this.state.error}</Text>
+
+        <CardSection>{this.renderButton()}</CardSection>
       </Card>
     );
   }
 }
 
 const styles = {
-    error:{
-        color:'red',
-        textAlign: 'center',
-        margin: 5,
-        fontSize: 18,
-
-    }
-}
+  error: {
+    color: "red",
+    textAlign: "center",
+    margin: 5,
+    fontSize: 18
+  }
+};
 
 export default LoginForm;
